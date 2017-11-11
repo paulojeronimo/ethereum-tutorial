@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+set +x
+
+web3j_ver=2.3.1
+web3j_tar_url=https://github.com/web3j/web3j/releases/download/v${web3j_ver}/web3j-${web3j_ver}.tar
+web3j_tar=${web3j_tar_url##*/}
+web3j_dir=`basename $web3j_tar .tar`
+
+cd
+
+d=$web3j_dir
+if [ -d "$d" ]
+then
+  echo "Removing $d ..."
+  rm -rf $d
+  rm -f bin/web3j
+fi
+
+d=/vagrant/bin
+if [ ! -f "$d/$web3j_tar" ]
+then
+  echo "Downloading $web3j_tar_url to $d ..."
+  mkdir -p $d
+  wget -q -c $web3j_tar_url -O $d/$web3j_tar
+fi
+
+echo "Extracting $d/$web3j_tar ..."
+mkdir -p $web3j_dir
+tar xf $d/$web3j_tar
+mkdir -p bin
+ln -sf ~/$web3j_dir/bin/web3j ~/bin

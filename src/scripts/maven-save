@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd
+[ -d .m2 ] || exit 0
+tar cvfz /vagrant/bin/m2.tar.gz .m2

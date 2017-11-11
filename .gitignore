@@ -1,0 +1,7 @@
+.vagrant
+*.log
+/bin
+/src/produced
+/tmp
+/README.html
+/README.pdf

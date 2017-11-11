@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd
+[ -d .ethereum ] || exit 0
+tar cvfz /vagrant/bin/ethereum.tar.gz .ethereum

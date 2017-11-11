@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 1eb6d18..4374ca2 100644
+--- a/package.json
++++ b/package.json
+@@ -21,7 +21,7 @@
+     "postinstall": "bower install",
+ 
+     "prestart": "npm install",
+-    "start": "http-server ./app -a localhost -p 8000 -c-1",
++    "start": "http-server ./app -p 8000 -c-1",
+ 
+     "pretest": "npm install",
+     "test": "karma start karma.conf.js",

@@ -1,0 +1,57 @@
+diff --git a/Transfering b/Transfering
+new file mode 100755
+index 0000000..0acdb3e
+--- /dev/null
++++ b/Transfering
+@@ -0,0 +1 @@
++mvn exec:java -Dexec.mainClass=com.paulojeronimo.web3j.Transfering -Dexec.args="web3jtest"
+diff --git a/pom.xml b/pom.xml
+index 9e3cd9f..3fd7858 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -9,7 +9,7 @@
+     <properties>
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+         <maven.compiler.plugin.version>3.7.0</maven.compiler.plugin.version>
+-        <org.web3j.version>3.0.2</org.web3j.version>
++        <org.web3j.version>2.3.1</org.web3j.version>
+         <exec.maven.plugin.version>1.6.0</exec.maven.plugin.version>
+     </properties>
+     <build>
+diff --git a/src/main/java/com/paulojeronimo/web3j/Transfering.java b/src/main/java/com/paulojeronimo/web3j/Transfering.java
+new file mode 100644
+index 0000000..506cf8f
+--- /dev/null
++++ b/src/main/java/com/paulojeronimo/web3j/Transfering.java
+@@ -0,0 +1,31 @@
++package com.paulojeronimo.web3j;
++
++import java.io.IOException;
++import java.math.BigDecimal;
++import java.util.concurrent.ExecutionException;
++
++import org.web3j.crypto.CipherException;
++import org.web3j.crypto.Credentials;
++import org.web3j.crypto.WalletUtils;
++import org.web3j.protocol.Web3j;
++import org.web3j.protocol.core.methods.response.TransactionReceipt;
++import org.web3j.protocol.exceptions.TransactionTimeoutException;
++import org.web3j.protocol.http.HttpService;
++import org.web3j.tx.Transfer;
++import org.web3j.utils.Convert;
++
++public class Transfering {
++    public static void main(String[] args) throws IOException, CipherException, InterruptedException,
++                                                    ExecutionException, TransactionTimeoutException {
++        Web3j web3 = Web3j.build(new HttpService());
++        String walletId = "6284623006d42a13050a90e343352f7e8b39ecb5";
++        String walletSource = "/home/ubuntu/.ethereum/testnet/keystore/UTC--2017-11-11T03-10-00.267000000Z--" + walletId + ".json";
++        Credentials credentials = WalletUtils.loadCredentials(args[0], walletSource);
++        String myWalletAddr = "0x" + walletId;
++        TransactionReceipt transactionReceipt = Transfer.sendFundsAsync(web3, credentials, myWalletAddr,
++                BigDecimal.valueOf(0.01), Convert.Unit.ETHER).get();
++        System.out.println("Funds transfer completed...");
++        System.out.println("Hash: " + transactionReceipt.getBlockHash());
++        System.out.println("Block number: " + transactionReceipt.getBlockNumber());
++    }
++}

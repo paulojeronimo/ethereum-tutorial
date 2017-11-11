@@ -1,0 +1,315 @@
+= Ethereum Tutorial
+Paulo Jerônimo, pj@paulojeronimo.com
+{localdatetime}
+:toc: left
+:toclevels: 4
+:icons: font
+:numbered:
+
+:imagesdir: images
+:VirtualBox: https://virtualbox.org[VirtualBox]
+:Vagrant: https://www.vagrantup.com/[Vagrant]
+
+== Environment setup
+
+=== Host setup
+
+* Install {VirtualBox}
+* Install {Vagrant}
+* Run:
+
+----
+$ vagrant up
+$ vagrant ssh
+----
+
+=== Box setup (Ubuntu 16.04)
+
+* Dotfiles configuration
+
+----
+$ mkdir -p ~/src/produced && cd $_
+$ git clone https://github.com/paulojeronimo/dotfiles
+$ ./dotfiles/install
+$ source ~/.ambiente
+----
+
+* Configure your name and email:
+
+----
+vim ~/.gitconfig
+----
+
+== Basic concepts
+
+=== Blockchain demo
+
+----
+$ ../scripts/node-setup
+$ git clone https://github.com/blockchain4devs/blockchain-demo
+$ cd blockchain-demo
+$ npm install
+$ PORT=8000 ./bin/www
+----
+
+* Open http://localhost:8000
+
+== Ethereum with Java
+
+=== Installing Java, Maven, Gradle, and web3j
+
+----
+$ ~/src/scripts/java-and-tools-setup
+$ vim !!
+----
+
+----
+$ source ~/.sdkman/bin/sdkman-init.sh
+$ java -version
+$ mvn -v
+$ gradle -v
+----
+
+----
+$ ~/src/scripts/web3j-setup
+$ vim !!
+----
+
+----
+$ web3j version
+----
+
+=== Creating a wallet
+
+----
+$ web3j wallet create
+...
+Please enter a wallet file password: <1>
+Please re-enter the password: 
+Please enter a destination directory location [/home/ubuntu/.ethereum/testnet/keystore]:               
+Creating directory: /home/ubuntu/.ethereum/testnet/keystore ...complete
+Wallet file UTC--2017-11-11T03-10-00.267000000Z--6284623006d42a13050a90e343352f7e8b39ecb5.json successfully created in: /home/ubuntu/.ethereum/testnet/keystore
+----
+<1> web3jtest
+
+=== Viewing the wallet file
+
+----
+$ wallet=`find ~/.ethereum/testnet/keystore -type f| head -n 1`
+$ python -m json.tool $wallet
+----
+
+=== web3j-demo: VersionInfo
+
+Creating and compiling:
+
+----
+$ cd ~/src/produced
+$ cp -r ../initial/web3j-demo . && cd web3j-demo
+$ tree
+$ vim src/main/java/com/paulojeronimo/web3j/VersionInfo.java
+----
+
+----
+$ mvn clean package
+----
+
+----
+$ git init
+$ git add -A
+$ git commit -m 'Initial commit'
+----
+
+Installing and executing geth:
+
+----
+$ ../../scripts/ethereum-setup
+$ vim !!
+$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby
+----
+
+Attaching to a existing node:
+open another terminal and run:
+
+----
+$ geth attach ~/.ethereum/rinkeby/geth.ipc
+> eth.syncing
+> exit
+----
+
+Exploring the rinkeby (testnet) blockchain:
+open https://www.rinkeby.io/#explorer.
+
+Installing a blockchain explorer:
+
+----
+$ cd ..
+$ git clone https://github.com/etherparty/explorer
+$ cd explorer
+$ git apply ../../patches/explorer/1.patch
+$ vim !$
+$ npm start
+----
+
+Open another terminal:
+stop `geth` and start it again with the following parameters:
+
+----
+$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby --rpcaddr='0.0.0.0' --rpccorsdomain "http://localhost:8000"
+----
+
+Open http://localhost:8000 on your host machine.
+
+Executing:
+
+----
+$ cd ~/src/produced/web3j-demo
+$ patch=../../patches/web3j-demo/1.patch
+$ cat $patch
+$ git apply $patch
+----
+
+----
+$ ./VersionInfo
+...
+Client version: Geth/v1.7.2-stable-1db4ecdc/linux-amd64/go1.9
+Network version: 3
+...
+$ vim !!
+----
+
+----
+$ git init
+$ git add -A
+$ git commit -m 'Modifying pom.xml to execute VersionInfo'
+----
+
+=== Requesting ETH
+
+* Copy your address (from `$wallet`).
+* Create a tweet with your address (`0x` + value) (https://twitter.com/paulojeronimo/status/929192118446419968[Sample]).
+* Open https://faucet.rinkeby.io/.
+** Insert the URL of yor tweet.
+
+.Requesting ETH
+image::requesting-eth.png[]
+
+.ETH received
+image::eth-received.png[]
+
+=== web3j-demo: Transfering
+
+----
+$ patch=../../patches/web3j-demo/2.patch
+$ cat $patch
+$ git apply $patch
+$ git status
+$ tree
+$ git difftool pom.xml
+$ vim src/main/java/com/paulojeronimo/web3j/Transfering.java
+----
+
+----
+$ ./Transfering
+...
+Funds transfer completed...
+Hash: 0x4a3c47672ebbce336861da39077c3eec1bf04db9860e51ab73adcae5ade6ae08
+Block number: 1221537
+...
+----
+
+.ETH Transfered
+image::eth-transfered.png[]
+
+----
+$ git add -A
+$ git commit -m 'Added transfering feature'
+----
+
+=== web3j-demo: Greeting
+
+Creating the smart contract:
+
+----
+$ patch=../../patches/web3j-demo/3.patch
+$ cat $patch
+$ git apply $patch
+----
+
+Compiling the smart contract:
+
+----
+$ d=target/solidity; rm -rf $d && mkdir -p $d && solc src/main/resources/Greeter.sol --bin --abi -o $d
+$ ls -l $d
+----
+
+Generating the Java code:
+
+----
+$ web3j solidity generate $d/greeter.bin $d/greeter.abi -p com.paulojeronimo.web3j.generated -o src/main/java
+----
+
+Running:
+
+----
+$ ./Greeting
+...
+Greetings to the blockchain world from Paulo Jeronimo!
+0x38c3feda08fdc418cfd3c169e14f2059526d686b5e1f325d9276c18816b201a7
+new Greeting from Paulo Jeronimo!
+...
+----
+
+Commiting:
+
+----
+$ git add -A
+$ git commit -m 'Added greeting feature'
+----
+
+=== References
+
+* Java Magazine January/February 2017:
+** http://www.javamagazine.mozaicreader.com/JanFeb2017#&pageSet=36&page=0[Blockchain: Using Cryptocurrency with Java]
+* YouTube:
+** https://www.youtube.com/watch?v=ea3miXs_P6Y[Java and Blockchain]
+* GitHub:
+** https://github.com/conor10/web3j-javamag
+** https://github.com/web3j/web3j-maven-plugin
+** https://github.com/web3j/web3j
+** https://github.com/blk-io/jaxlondon
+** https://github.com/JacqMT/web3j-maven-example
+
+=== Skills to be a better Ethereum Java Programmer
+
+* Java 8 features: Functional Programming, CompletableFuture.
+* Reactive Programming with RxJava.
+
+== Ethereum with JavaScript
+
+* Running a sample application:
+
+----
+$ mkdir javascript-demos && cd $_
+$ git clone https://github.com/mjhm/hello_world_dapp
+$ cd hello_world_dapp
+$ npm install
+$ npm run testrpc
+$ npm run http_server
+----
+
+* Step by step tutorial:
+** https://medium.com/@mvmurthy/ethereum-for-web-developers-890be23d1d0c[Ethereum for web developers]
+** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-1-40d2d0d807c2[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 1]
+** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-2-30b3d335aa1f[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 2]
+** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-3-331c2712c9df[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 3]
+* GitHub:
+** https://github.com/maheshmurthy/ethereum_voting_dapp
+
+== Extra references
+
+* YouTube:
+** https://www.youtube.com/watch?v=7LCHlkdibWg[Getting Started with Ethereum Solidity Development by Sebastien Arbogast and Said Eloudrhiri]
+** https://www.youtube.com/watch?v=dQVxbPqlBkE[Why you should really care about the blockchain by Sebastien Arbogast & Said Eloudrhiri]
+** https://www.youtube.com/watch?v=8jI1TuEaTro&t=345s[Introduction to Ethereum Smart Contract Development with Solidity (Part 1)]
+** https://www.youtube.com/watch?v=3-XPBtAfcqo[Introduction to Ethereum Smart Contract Development with Solidity (Part 2)]
