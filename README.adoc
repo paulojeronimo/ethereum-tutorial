@@ -5,6 +5,7 @@ Paulo Jerônimo, pj@paulojeronimo.com
 :toclevels: 4
 :icons: font
 :numbered:
+:experimental:
 
 :imagesdir: images
 :VirtualBox: https://virtualbox.org[VirtualBox]
@@ -14,9 +15,11 @@ Paulo Jerônimo, pj@paulojeronimo.com
 
 === Host setup
 
-* Install {VirtualBox}
-* Install {Vagrant}
-* Run:
+Install {VirtualBox}.
+
+Install {Vagrant}.
+
+Run:
 
 ----
 $ vagrant up
@@ -25,34 +28,56 @@ $ vagrant ssh
 
 === Box setup (Ubuntu 16.04)
 
-* Dotfiles configuration
+Configure a dir for your produced sources and put it on your `~/.bashrc` file:
 
 ----
-$ mkdir -p ~/src/produced && cd $_
-$ git clone https://github.com/paulojeronimo/dotfiles
-$ ./dotfiles/install
-$ source ~/.ambiente
+$ readonly mysrc=~/src/produced; export mysrc
+$ echo "!!" >> ~/.bashrc
 ----
 
-* Configure your name and email:
+Dotfiles configuration:
 
 ----
-vim ~/.gitconfig
+$ cd $mysrc && cat <<'EOF'|bash -e
+mkdir -p $mysrc && cd $_
+rm -rf dotfiles
+git clone https://github.com/paulojeronimo/dotfiles
+./dotfiles/install
+EOF
+$ [ $? = 0 ] && source ~/.ambiente
+----
+
+Configure your name and email in `~/.gitconfig`:
+
+----
+$ vim ~/.gitconfig
 ----
 
 == Basic concepts
 
 === Blockchain demo
 
+Install node:
+
 ----
-$ ../scripts/node-setup
-$ git clone https://github.com/blockchain4devs/blockchain-demo
-$ cd blockchain-demo
-$ npm install
-$ PORT=8000 ./bin/www
+$ ~/src/scripts/node-setup
 ----
 
-* Open http://localhost:8000
+Download and run `blockchain-demo`:
+
+----
+$ cat <<'EOF'|bash -e
+cd $mysrc
+rm -rf blockchain-demo
+git clone https://github.com/blockchain4devs/blockchain-demo
+cd blockchain-demo
+npm install
+PORT=8000 ./bin/www
+EOF
+----
+
+Open http://localhost:8000 and test.
+After finish your tests, press kbd:[Ctrl+C] at the shell running `blockchain-demo`.
 
 == Ethereum with Java
 
@@ -65,10 +90,14 @@ $ vim !!
 
 ----
 $ source ~/.sdkman/bin/sdkman-init.sh
-$ java -version
-$ mvn -v
-$ gradle -v
+$ cat <<'EOF'|bash
+java -version
+mvn -v
+gradle -v
+EOF
 ----
+
+https://web3j.io[web3j] setup:
 
 ----
 $ ~/src/scripts/web3j-setup
@@ -77,6 +106,133 @@ $ vim !!
 
 ----
 $ web3j version
+----
+
+=== web3j-demo: VersionInfo
+
+Creating and compiling:
+
+----
+$ cd $mysrc
+$ cp -r ../initial/web3j-demo . && cd web3j-demo
+$ tree
+$ vim -p pom.xml $(find . -name '*.java')
+----
+
+----
+$ mvn clean package
+----
+
+----
+$ git init
+$ git add -A
+$ git commit -m 'Initial commit'
+----
+
+Installing geth:
+
+----
+$ ~/src/scripts/ethereum-setup
+$ vim !!
+----
+
+Running geth:
+
+[TIP]
+====
+From this point it is best that you are using tmux.
+====
+
+----
+$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby
+----
+
+Open another terminal and type the following command to see the size of the Rinkeby Blockchain growing on your disk (press kbd:[Ctrl+C] to stop):
+
+----
+$ watch du -hs ~/.ethereum/
+----
+
+[NOTE]
+.Pause for a little theory ...
+====
+* http://ethdocs.org/en/latest/ethereum-clients/[Ethereum clients] https://docs.web3j.io/#features[supported by web3j]:
+** http://ethdocs.org/en/latest/ethereum-clients/go-ethereum/index.html[go-ethereum (geth)] __(Used in this tutorial, written in Go Language)__
+** http://ethdocs.org/en/latest/ethereum-clients/parity/index.html[Parity] __(written in Rust language)__
+* https://docs.web3j.io/transactions.html#ethereum-testnets[Ethereum testnets]: Rinkeby, Kovan, Ropsten
+====
+
+Attaching to a existing node:
+
+----
+$ geth attach ~/.ethereum/rinkeby/geth.ipc
+> eth.syncing
+> eth.blockNumber
+> exit
+----
+
+Exploring the rinkeby (testnet) blockchain:
+open https://www.rinkeby.io/#explorer.
+
+Installing your own https://github.com/etherparty/explorer[blockchain explorer]:
+
+----
+$ cd $mysrc && cat <<'EOF' | bash
+rm -rf explorer
+git clone https://github.com/etherparty/explorer
+cd explorer
+git apply ../../patches/explorer/1.patch
+npm start
+EOF
+----
+
+Seeing the patch (for curious):
+
+----
+$ vim ~/src/patches/explorer/1.patch
+----
+
+Open another terminal.
+Stop `geth` and start it again with the following parameters:
+
+----
+$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby --rpcaddr='0.0.0.0' --rpccorsdomain "http://localhost:8000"
+----
+
+Open http://localhost:8000 on your host machine.
+
+Patching `web3j-demo` (doing some additions):
+
+----
+$ cd $mysrc/web3j-demo && git apply ../../patches/web3j-demo/1.patch
+----
+
+Seeing the patch:
+
+----
+$ vim $_
+----
+
+Running the app (`VersionInfo.java`):
+
+----
+$ ./VersionInfo
+----
+
+The output produced will be something similar to:
+
+----
+...
+Client version: Geth/v1.7.3-stable-4bb3c89d/linux-amd64/go1.9
+Network version: 4
+...
+----
+
+Commiting the changes:
+
+----
+$ git add -A
+$ git commit -m 'Modifying pom.xml to execute VersionInfo'
 ----
 
 === Creating a wallet
@@ -95,101 +251,18 @@ Wallet file UTC--2017-11-11T03-10-00.267000000Z--6284623006d42a13050a90e343352f7
 === Viewing the wallet file
 
 ----
-$ wallet=`find ~/.ethereum/testnet/keystore -type f| head -n 1`
+$ export wallet=`find ~/.ethereum/testnet/keystore -type f| head -n 1`
 $ python -m json.tool $wallet
-----
-
-=== web3j-demo: VersionInfo
-
-Creating and compiling:
-
-----
-$ cd ~/src/produced
-$ cp -r ../initial/web3j-demo . && cd web3j-demo
-$ tree
-$ vim src/main/java/com/paulojeronimo/web3j/VersionInfo.java
-----
-
-----
-$ mvn clean package
-----
-
-----
-$ git init
-$ git add -A
-$ git commit -m 'Initial commit'
-----
-
-Installing and executing geth:
-
-----
-$ ../../scripts/ethereum-setup
-$ vim !!
-$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby
-----
-
-Attaching to a existing node:
-open another terminal and run:
-
-----
-$ geth attach ~/.ethereum/rinkeby/geth.ipc
-> eth.syncing
-> exit
-----
-
-Exploring the rinkeby (testnet) blockchain:
-open https://www.rinkeby.io/#explorer.
-
-Installing a blockchain explorer:
-
-----
-$ cd ..
-$ git clone https://github.com/etherparty/explorer
-$ cd explorer
-$ git apply ../../patches/explorer/1.patch
-$ vim !$
-$ npm start
-----
-
-Open another terminal:
-stop `geth` and start it again with the following parameters:
-
-----
-$ geth --rpcapi personal,db,eth,net,web3 --rpc --rinkeby --rpcaddr='0.0.0.0' --rpccorsdomain "http://localhost:8000"
-----
-
-Open http://localhost:8000 on your host machine.
-
-Executing:
-
-----
-$ cd ~/src/produced/web3j-demo
-$ patch=../../patches/web3j-demo/1.patch
-$ cat $patch
-$ git apply $patch
-----
-
-----
-$ ./VersionInfo
-...
-Client version: Geth/v1.7.2-stable-1db4ecdc/linux-amd64/go1.9
-Network version: 3
-...
-$ vim !!
-----
-
-----
-$ git init
-$ git add -A
-$ git commit -m 'Modifying pom.xml to execute VersionInfo'
 ----
 
 === Requesting ETH
 
-* Copy your address (from `$wallet`).
-* Create a tweet with your address (`0x` + value) (https://twitter.com/paulojeronimo/status/929192118446419968[Sample]).
-* Open https://faucet.rinkeby.io/.
-** Insert the URL of yor tweet.
+Copy your address (from `$wallet`).
+
+Create a tweet with your address (`0x` + value) (https://twitter.com/paulojeronimo/status/929192118446419968[Sample]).
+
+Open https://faucet.rinkeby.io/.
+Insert the URL of yor tweet.
 
 .Requesting ETH
 image::requesting-eth.png[]
@@ -200,9 +273,7 @@ image::eth-received.png[]
 === web3j-demo: Transfering
 
 ----
-$ patch=../../patches/web3j-demo/2.patch
-$ cat $patch
-$ git apply $patch
+$ git apply ../../patches/web3j-demo/2.patch
 $ git status
 $ tree
 $ git difftool pom.xml
@@ -249,6 +320,12 @@ Generating the Java code:
 $ web3j solidity generate $d/greeter.bin $d/greeter.abi -p com.paulojeronimo.web3j.generated -o src/main/java
 ----
 
+Compiling the Java code:
+
+----
+$ mvn clean package
+----
+
 Running:
 
 ----
@@ -269,47 +346,76 @@ $ git commit -m 'Added greeting feature'
 
 === References
 
-* Java Magazine January/February 2017:
-** http://www.javamagazine.mozaicreader.com/JanFeb2017#&pageSet=36&page=0[Blockchain: Using Cryptocurrency with Java]
-* YouTube:
-** https://www.youtube.com/watch?v=ea3miXs_P6Y[Java and Blockchain]
-* GitHub:
-** https://github.com/conor10/web3j-javamag
-** https://github.com/web3j/web3j-maven-plugin
-** https://github.com/web3j/web3j
-** https://github.com/blk-io/jaxlondon
-** https://github.com/JacqMT/web3j-maven-example
+Articles:
+
+* http://www.javamagazine.mozaicreader.com/JanFeb2017#&pageSet=36&page=0[Blockchain: Using Cryptocurrency with Java]
+* https://community.oracle.com/docs/DOC-1011373[Reactive-Functional Fun on the Blockchain with web3j]
+
+YouTube:
+
+* https://www.youtube.com/watch?v=ea3miXs_P6Y[Java and Blockchain]
+
+GitHub:
+
+* https://github.com/conor10/web3j-javamag
+* https://github.com/web3j/web3j-maven-plugin
+* https://github.com/web3j/web3j
+* https://github.com/blk-io/jaxlondon
+* https://github.com/JacqMT/web3j-maven-example
 
 === Skills to be a better Ethereum Java Programmer
 
-* Java 8 features: Functional Programming, CompletableFuture.
-* Reactive Programming with RxJava.
+Java 8 features: Functional Programming, CompletableFuture.
+
+Reactive Programming with RxJava.
 
 == Ethereum with JavaScript
 
-* Running a sample application:
+First, stop the running `geth`.
+This is because we will run `testrpc` that listens on the same port (8545)!
+
+Download and install the application:
 
 ----
-$ mkdir javascript-demos && cd $_
-$ git clone https://github.com/mjhm/hello_world_dapp
-$ cd hello_world_dapp
-$ npm install
-$ npm run testrpc
-$ npm run http_server
+$ cd $mysrc && cat <<'EOF'|bash
+mkdir -p javascript-demos && cd $_
+rm -rf hello_world_dapp
+git clone https://github.com/mjhm/hello_world_dapp
+cd hello_world_dapp
+npm install
+EOF
 ----
 
-* Step by step tutorial:
-** https://medium.com/@mvmurthy/ethereum-for-web-developers-890be23d1d0c[Ethereum for web developers]
-** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-1-40d2d0d807c2[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 1]
-** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-2-30b3d335aa1f[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 2]
-** https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-3-331c2712c9df[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 3]
-* GitHub:
-** https://github.com/maheshmurthy/ethereum_voting_dapp
+Run `testrpc`:
+
+----
+npm run testrpc
+----
+
+Open another shell and run:
+
+----
+npm run http_server
+----
+
+Open http://localhost:8000 on your browser and test the app.
+
+Step by step tutorial:
+
+* https://medium.com/@mvmurthy/ethereum-for-web-developers-890be23d1d0c[Ethereum for web developers]
+* https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-1-40d2d0d807c2[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 1]
+* https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-2-30b3d335aa1f[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 2]
+* https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-3-331c2712c9df[Full Stack Hello World Voting Ethereum Dapp Tutorial — Part 3]
+
+GitHub code:
+
+* https://github.com/maheshmurthy/ethereum_voting_dapp
 
 == Extra references
 
-* YouTube:
-** https://www.youtube.com/watch?v=7LCHlkdibWg[Getting Started with Ethereum Solidity Development by Sebastien Arbogast and Said Eloudrhiri]
-** https://www.youtube.com/watch?v=dQVxbPqlBkE[Why you should really care about the blockchain by Sebastien Arbogast & Said Eloudrhiri]
-** https://www.youtube.com/watch?v=8jI1TuEaTro&t=345s[Introduction to Ethereum Smart Contract Development with Solidity (Part 1)]
-** https://www.youtube.com/watch?v=3-XPBtAfcqo[Introduction to Ethereum Smart Contract Development with Solidity (Part 2)]
+YouTube:
+
+* https://www.youtube.com/watch?v=7LCHlkdibWg[Getting Started with Ethereum Solidity Development by Sebastien Arbogast and Said Eloudrhiri]
+* https://www.youtube.com/watch?v=dQVxbPqlBkE[Why you should really care about the blockchain by Sebastien Arbogast & Said Eloudrhiri]
+* https://www.youtube.com/watch?v=8jI1TuEaTro&t=345s[Introduction to Ethereum Smart Contract Development with Solidity (Part 1)]
+* https://www.youtube.com/watch?v=3-XPBtAfcqo[Introduction to Ethereum Smart Contract Development with Solidity (Part 2)]

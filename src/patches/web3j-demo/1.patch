@@ -6,13 +6,13 @@ index 0000000..0980b4e
 @@ -0,0 +1 @@
 +mvn exec:java -Dexec.mainClass=com.paulojeronimo.web3j.VersionInfo
 diff --git a/pom.xml b/pom.xml
-index 4d3f992..9e3cd9f 100644
+index b4ee8aa..3fd7858 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -10,6 +10,7 @@
          <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
          <maven.compiler.plugin.version>3.7.0</maven.compiler.plugin.version>
-         <org.web3j.version>3.0.2</org.web3j.version>
+         <org.web3j.version>2.3.1</org.web3j.version>
 +        <exec.maven.plugin.version>1.6.0</exec.maven.plugin.version>
      </properties>
      <build>

@@ -6,7 +6,7 @@ sudo sudo apt-get install zip unzip
 
 curl -s "https://get.sdkman.io" | bash
 source ~/.sdkman/bin/sdkman-init.sh
-sdk install java 8u151-oracle
+yes | sdk install java 8u151-oracle
 sdk install maven
 sdk install gradle
 
